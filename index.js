@@ -73,31 +73,69 @@ app.get("/open-app/:shortUrl", async (req, res) => {
     if (!url) return res.status(404).send("Not found");
 
     const meta = url.dynamicLinkInfo?.socialMetaTagInfo || {};
+    const androidPackage = url.dynamicLinkInfo?.androidInfo?.androidPackageName;
+    const iosBundleId = url.dynamicLinkInfo?.iosInfo?.iosBundleId;
+    const fallbackUrl =
+        url.dynamicLinkInfo?.androidInfo?.androidFallbackLink ||
+        url.dynamicLinkInfo?.iosInfo?.iosFallbackLink ||
+        url.longUrl;
+    const deepLinkPrifix = url.dynamicLinkInfo?.deepLinkPrifix || "sampathwallet"
+
+    const deepLink = `${deepLinkPrifix}://paymentToken=${url.token}`;
+    const playStoreLink = `https://play.google.com/store/apps/details?id=${androidPackage}`;
+    const appStoreLink = `https://apps.apple.com/app/${iosBundleId}`; // Replace with actual ID
+
     const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+    const socialImage = meta.socialImageLink || 'https://url-shortener-e34c.onrender.com/default.png';
 
     res.send(`
         <html>
         <head>
+            <meta charset="UTF-8">
             <meta property="og:title" content="${meta.socialTitle || 'Fundshare'}" />
             <meta property="og:description" content="${meta.socialDescription || 'Open this link in app'}" />
-            <meta property="og:image" content="${meta.socialImageLink || 'https://url-shortener-e34c.onrender.com/default.png'}" />
+            <meta property="og:image" content="${socialImage}" />
             <meta property="og:url" content="${fullUrl}" />
 
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content="${meta.socialTitle || 'Fundshare'}" />
             <meta name="twitter:description" content="${meta.socialDescription || 'Open this link in app'}" />
-            <meta name="twitter:image" content="${meta.socialImageLink || 'https://url-shortener-e34c.onrender.com/default.png'}" />
+            <meta name="twitter:image" content="${socialImage}" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-            <!-- Delay gives bots time to parse -->
-            <meta http-equiv="refresh" content="3; url=${url.longUrl}" />
-            <title>Redirecting...</title>
+            <title>Open App</title>
+            <style>
+                body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+            </style>
         </head>
         <body>
-            <p>Redirecting to the app...</p>
+            <p>Opening the app...</p>
+            <script>
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                const isAndroid = /android/i.test(userAgent);
+                const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+
+                const fallback = "${fallbackUrl}";
+                const playStore = "${playStoreLink}";
+                const appStore = "${appStoreLink}";
+                const deepLink = "${deepLink}";
+
+                const now = Date.now();
+                setTimeout(() => {
+                    const elapsed = Date.now() - now;
+                    if (elapsed < 2000) {
+                        window.location.href = isAndroid ? playStore : isIOS ? appStore : fallback;
+                    }
+                }, 1500);
+
+                // Try to open the app
+                window.location.href = deepLink;
+            </script>
         </body>
         </html>
     `);
 });
+
 
 // Analytics
 app.get("/stats/:shortUrl", async (req, res) => {
