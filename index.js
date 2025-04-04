@@ -72,6 +72,9 @@ app.get("/open-app/:shortUrl", async (req, res) => {
     const url = await Url.findOne({ shortUrl: req.params.shortUrl });
     if (!url) return res.status(404).send("Not found");
 
+    url.clickCount++;
+    await url.save();
+
     const meta = url.dynamicLinkInfo?.socialMetaTagInfo || {};
     const androidPackage = url.dynamicLinkInfo?.androidInfo?.androidPackageName;
     const iosBundleId = url.dynamicLinkInfo?.iosInfo?.iosBundleId;
