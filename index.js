@@ -73,16 +73,28 @@ app.get("/open-app/:shortUrl", async (req, res) => {
     if (!url) return res.status(404).send("Not found");
 
     const meta = url.dynamicLinkInfo?.socialMetaTagInfo || {};
+    const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
 
     res.send(`
         <html>
         <head>
             <meta property="og:title" content="${meta.socialTitle || 'Fundshare'}" />
             <meta property="og:description" content="${meta.socialDescription || 'Open this link in app'}" />
-            <meta property="og:image" content="${meta.socialImageLink || 'default.png'}" />
-            <meta http-equiv="refresh" content="0; url=${url.longUrl}">
+            <meta property="og:image" content="${meta.socialImageLink || 'https://url-shortener-e34c.onrender.com/default.png'}" />
+            <meta property="og:url" content="${fullUrl}" />
+
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content="${meta.socialTitle || 'Fundshare'}" />
+            <meta name="twitter:description" content="${meta.socialDescription || 'Open this link in app'}" />
+            <meta name="twitter:image" content="${meta.socialImageLink || 'https://url-shortener-e34c.onrender.com/default.png'}" />
+
+            <!-- Delay gives bots time to parse -->
+            <meta http-equiv="refresh" content="3; url=${url.longUrl}" />
+            <title>Redirecting...</title>
         </head>
-        <body><p>Redirecting...</p></body>
+        <body>
+            <p>Redirecting to the app...</p>
+        </body>
         </html>
     `);
 });
