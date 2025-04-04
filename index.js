@@ -120,16 +120,19 @@ app.get("/open-app/:shortUrl", async (req, res) => {
                 const appStore = "${appStoreLink}";
                 const deepLink = "${deepLink}";
 
-                const now = Date.now();
-                setTimeout(() => {
-                    const elapsed = Date.now() - now;
-                    if (elapsed < 2000) {
-                        window.location.href = isAndroid ? playStore : isIOS ? appStore : fallback;
-                    }
-                }, 1500);
+                // Try opening the app
+            window.location.href = deepLink;
 
-                // Try to open the app
-                window.location.href = deepLink;
+            // If the app is not installed, redirect to the store after a delay
+            setTimeout(function () {
+                if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                    window.location.href = appStore;
+                } else if (/android/i.test(navigator.userAgent)) {
+                    window.location.href = playStore;
+                } else {
+                    window.location.href = fallback; // Generic fallback
+                }
+            }, 2000);
             </script>
         </body>
         </html>
