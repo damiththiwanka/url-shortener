@@ -20,24 +20,34 @@ const UrlSchema = new mongoose.Schema({
     longUrl: String,
     token: String,
     dynamicLinkInfo: Object,
-    createdAt: { type: Date, default: Date.now, expires: 604800 }, // 7 days
+    createdAt: { type: Date, default: Date.now },
+    expiresAt: Date, //explicit expiration
     clickCount: { type: Number, default: 0 },
 });
+// TTL Index for automatic expiration
+UrlSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Url = mongoose.model("Url", UrlSchema);
 
 // Create short link
 app.post("/shorten", async (req, res) => {
-    const { dynamicLinkInfo, suffix } = req.body;
+    const { dynamicLinkInfo, suffix, expiresInMinutes } = req.body;
+
     if (!dynamicLinkInfo || !dynamicLinkInfo.link)
         return res.status(400).json({ error: "Missing dynamicLinkInfo.link" });
 
     const shortUrl = suffix?.option === "SHORT" ? shortid.generate() : shortid.generate();
+
+    const expiresAt = expiresInMinutes
+        ? new Date(Date.now() + expiresInMinutes * 60000)
+        : null; // If not provided, the link won’t expire
+
     await Url.create({
         shortUrl,
         longUrl: dynamicLinkInfo.link,
         token: shortUrl,
         dynamicLinkInfo,
+        expiresAt,
     });
 
     const domain = dynamicLinkInfo.domainUriPrefix || "https://yourdomain.com";
@@ -71,6 +81,10 @@ app.get("/:shortUrl", async (req, res) => {
 app.get("/open-app/:shortUrl", async (req, res) => {
     const url = await Url.findOne({ shortUrl: req.params.shortUrl });
     if (!url) return res.status(404).send("Not found");
+
+    if (url.expiresAt && url.expiresAt < new Date()) {
+        return res.status(410).send("Link expired");
+    }
 
     url.clickCount++;
     await url.save();
@@ -147,6 +161,10 @@ app.get("/open-app/:shortUrl", async (req, res) => {
 app.get("/stats/:shortUrl", async (req, res) => {
     const url = await Url.findOne({ shortUrl: req.params.shortUrl });
     if (!url) return res.status(404).json({ error: "Not found" });
+
+    // if (url.expiresAt && url.expiresAt < new Date()) {
+    //     return res.status(410).send("Link expired");
+    // }
 
     res.json({
         shortUrl: url.shortUrl,
