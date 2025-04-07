@@ -51,34 +51,34 @@ app.post("/shorten", async (req, res) => {
     });
 
     const domain = dynamicLinkInfo.domainUriPrefix || "https://yourdomain.com";
-    res.json({ shortUrl: `${domain}/open-app/${shortUrl}` });
+    res.json({ shortUrl: `${domain}/${shortUrl}` });
 });
 
-// Redirect logic
-app.get("/:shortUrl", async (req, res) => {
-    const url = await Url.findOne({ shortUrl: req.params.shortUrl });
-    if (!url) return res.status(404).send("Not found");
+// // Redirect logic
+// app.get("/:shortUrl", async (req, res) => {
+//     const url = await Url.findOne({ shortUrl: req.params.shortUrl });
+//     if (!url) return res.status(404).send("Not found");
 
-    url.clickCount++;
-    await url.save();
+//     url.clickCount++;
+//     await url.save();
 
-    const parser = new UAParser(req.headers["user-agent"]);
-    const os = parser.getOS().name.toLowerCase();
+//     const parser = new UAParser(req.headers["user-agent"]);
+//     const os = parser.getOS().name.toLowerCase();
 
-    const androidPackage = url.dynamicLinkInfo?.androidInfo?.androidPackageName;
-    const iosBundleId = url.dynamicLinkInfo?.iosInfo?.iosBundleId;
+//     const androidPackage = url.dynamicLinkInfo?.androidInfo?.androidPackageName;
+//     const iosBundleId = url.dynamicLinkInfo?.iosInfo?.iosBundleId;
 
-    if (os.includes("android") && androidPackage) {
-        res.redirect(`intent://#Intent;package=${androidPackage};scheme=https;end`);
-    } else if (os.includes("ios") && iosBundleId) {
-        res.redirect(`yourapp://paymentToken=${url.token}`);
-    } else {
-        res.redirect(url.longUrl);
-    }
-});
+//     if (os.includes("android") && androidPackage) {
+//         res.redirect(`intent://#Intent;package=${androidPackage};scheme=https;end`);
+//     } else if (os.includes("ios") && iosBundleId) {
+//         res.redirect(`yourapp://paymentToken=${url.token}`);
+//     } else {
+//         res.redirect(url.longUrl);
+//     }
+// });
 
 // Social Meta Redirect Page
-app.get("/open-app/:shortUrl", async (req, res) => {
+app.get("/:shortUrl", async (req, res) => {
     const url = await Url.findOne({ shortUrl: req.params.shortUrl });
     if (!url) return res.status(404).send("Not found");
 
@@ -96,9 +96,11 @@ app.get("/open-app/:shortUrl", async (req, res) => {
         url.dynamicLinkInfo?.androidInfo?.androidFallbackLink ||
         url.dynamicLinkInfo?.iosInfo?.iosFallbackLink ||
         url.longUrl;
-    const deepLinkPrifix = url.dynamicLinkInfo?.deepLinkPrifix || "sampathwallet"
+    const tokenType = url.dynamicLinkInfo?.tokenType;
+    const token = url.dynamicLinkInfo?.token;
+    const deepLinkPrefix = url.dynamicLinkInfo?.deepLinkPrefix || "sampathwallet"
 
-    const deepLink = `${deepLinkPrifix}://paymentToken=${url.token}`;
+    const deepLink = `${deepLinkPrefix}://${tokenType}=${token}`;
     const playStoreLink = `https://play.google.com/store/apps/details?id=${androidPackage}`;
     const appStoreLink = `https://apps.apple.com/app/${iosBundleId}`; // Replace with actual ID
 
@@ -169,6 +171,7 @@ app.get("/stats/:shortUrl", async (req, res) => {
     res.json({
         shortUrl: url.shortUrl,
         clickCount: url.clickCount,
+        dynamicLinkInfo:url.dynamicLinkInfo,
         originalUrl: url.longUrl,
     });
 });
