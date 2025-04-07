@@ -50,7 +50,8 @@ app.post("/shorten", async (req, res) => {
         expiresAt,
     });
 
-    const domain = dynamicLinkInfo.domainUriPrefix || "https://yourdomain.com";
+   // const domain = dynamicLinkInfo.domainUriPrefix || "https://yourdomain.com";
+   const domain = `${req.protocol}://${req.get("host")}`;
     res.json({ shortUrl: `${domain}/${shortUrl}` });
 });
 
